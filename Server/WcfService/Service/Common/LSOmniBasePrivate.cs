@@ -189,6 +189,10 @@ namespace LSOmni.Service
 
                 if (ConfigSetting.KeyExists("ECom.Url"))
                     config.Settings.FirstOrDefault(x => x.Key == ConfigKey.EComUrl.ToString()).Value = ConfigSetting.GetString("ECom.Url");
+                if (ConfigSetting.KeyExists("Custom.MiddlewareUrl"))
+                    config.Settings.FirstOrDefault(x => x.Key == ConfigKey.MiddlewareUrl.ToString()).Value = ConfigSetting.GetString("Custom.MiddlewareUrl");
+                if (ConfigSetting.KeyExists("Custom.CustomCalculateBasket"))
+                    config.Settings.FirstOrDefault(x => x.Key == ConfigKey.CustomCalculateBasket.ToString()).Value = ConfigSetting.GetString("Custom.CustomCalculateBasket");
 
                 if (ConfigSetting.KeyExists("Security.Validatetoken"))
                     config.SecurityCheck = ConfigSetting.GetBoolean("Security.Validatetoken");

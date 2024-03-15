@@ -69,5 +69,9 @@ namespace LSRetail.Omni.Domain.DataModel.Base
         Cache_Image_DurationInMinutes = 1200,
 
         TenderType_Mapping = 1280,
+
+        // Custom keys
+        MiddlewareUrl = 5000,
+        CustomCalculateBasket = 5001
     }
 } 

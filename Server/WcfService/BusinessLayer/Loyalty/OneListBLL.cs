@@ -84,7 +84,7 @@ namespace LSOmni.BLL.Loyalty
 
             CheckItemSetup(list);
 
-            Order order = BOLoyConnection.BasketCalcToOrder(list, stat);
+            Order order = config.SettingsBoolGetByKey(ConfigKey.CustomCalculateBasket) ? CustomOrderCalc(list, stat) : BOLoyConnection.BasketCalcToOrder(list, stat);
             foreach (OneListItem olditem in list.Items)
             {
                 OrderLine oline = order.OrderLines.Find(l => l.ItemId == olditem.ItemId && l.LineNumber == olditem.LineNumber);
@@ -118,7 +118,7 @@ namespace LSOmni.BLL.Loyalty
             if (list.Items.Count == 0)
                 throw new LSOmniException(StatusCode.NoLinesToPost, "No Lines to calculate");
 
-            OrderHosp order = BOLoyConnection.HospOrderCalculate(list, stat);
+            OrderHosp order = config.SettingsBoolGetByKey(ConfigKey.CustomCalculateBasket) ? CustomOrderHospCalc(list, stat) : BOLoyConnection.HospOrderCalculate(list, stat);
             foreach (OneListItem olditem in list.Items)
             {
                 OrderHospLine oline = order.OrderLines.Find(l => l.ItemId == olditem.ItemId && l.LineNumber == olditem.LineNumber);
@@ -292,7 +292,7 @@ namespace LSOmni.BLL.Loyalty
             list.TotalNetAmount = 0;
             list.TotalTaxAmount = 0;
 
-            Order calcResp = BOLoyConnection.BasketCalcToOrder(list, stat);
+            Order calcResp = config.SettingsBoolGetByKey(ConfigKey.CustomCalculateBasket) ? CustomOrderCalc(list, stat) : BOLoyConnection.BasketCalcToOrder(list, stat);
 
             list.TotalAmount = calcResp.TotalAmount;
             list.TotalNetAmount = calcResp.TotalNetAmount;
@@ -401,8 +401,7 @@ namespace LSOmni.BLL.Loyalty
             list.TotalNetAmount = 0;
             list.TotalTaxAmount = 0;
 
-            OrderHosp calcResp = BOLoyConnection.HospOrderCalculate(list, stat);
-
+            OrderHosp calcResp = config.SettingsBoolGetByKey(ConfigKey.CustomCalculateBasket) ? CustomOrderHospCalc(list, stat) : BOLoyConnection.HospOrderCalculate(list, stat);
             list.TotalAmount = calcResp.TotalAmount;
             list.TotalNetAmount = calcResp.TotalNetAmount;
             list.TotalTaxAmount = calcResp.TotalAmount - calcResp.TotalNetAmount;
@@ -484,6 +483,33 @@ namespace LSOmni.BLL.Loyalty
             list.Items.Clear();
             list.Items = newitems;
             return list;
+        }
+
+        private string RouteRequestToMiddleware(string endpoint, string requestString)
+        {
+            string responseString = string.Empty;
+            string requestUrl = $"{config.SettingsGetByKey(ConfigKey.MiddlewareUrl)}{endpoint}";
+            using (var client = new System.Net.Http.HttpClient())
+            {
+                var stringContent = new System.Net.Http.StringContent(requestString, System.Text.Encoding.UTF8, "application/json");
+                var response = client.PostAsync(requestUrl, stringContent).Result;
+                responseString = response.Content.ReadAsStringAsync().Result;
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"Middleware Url: {requestUrl}, Error message: {responseString}");
+            }
+            return responseString;
+        }
+
+        private Order CustomOrderCalc(OneList list, Statistics stat)
+        {
+            string responseString = RouteRequestToMiddleware("OrderCalc", Newtonsoft.Json.JsonConvert.SerializeObject(new { list, stat }));
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<Order>(responseString);
+        }
+
+        private OrderHosp CustomOrderHospCalc(OneList list, Statistics stat)
+        {
+            string responseString = RouteRequestToMiddleware("OrderHospCalc", Newtonsoft.Json.JsonConvert.SerializeObject(new { list, stat }));
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<OrderHosp>(responseString);
         }
     }
 }
